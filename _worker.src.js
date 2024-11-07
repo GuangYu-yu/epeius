@@ -563,10 +563,16 @@ export {
 */
 
 function revertFakeInfo(content, userID, hostName, isBase64) {
-	if (isBase64) content = atob(content);//Base64解码
-	content = content.replace(new RegExp(fakeUserID, 'g'), userID).replace(new RegExp(fakeHostName, 'g'), hostName);
-	//console.log(content);
-	if (isBase64) content = btoa(content);//Base64编码
+    // 如果内容是base64编码的，先解码
+    if (isBase64) content = atob(content);
+    
+    // 将混淆的信息替换回真实信息
+    content = content.replace(new RegExp(fakeUserID, 'g'), userID)  // 替换假密码为真实密码
+                    .replace(new RegExp(fakeHostName, 'g'), hostName)  // 替换假域名为真实域名
+                    .replace(/server:\s*"\[(.*?)\]"/g, 'server: "$1"');  // 移除server值两边的方括号，以适配clash的ipv6地址
+    
+    // 如果原内容是base64编码的，还需要重新编码
+    if (isBase64) content = btoa(content);
 
 	return content;
 }
@@ -870,8 +876,6 @@ https://github.com/cmliu/epeius
 			if (_url.pathname == `/${fakeUserID}`) return content;
 			
 			content = revertFakeInfo(content, password, hostName, isBase64);
-			// 添加正则替换，移除server值两边的方括号，以适配clash的ipv6地址
-			content = content.replace(/server:\s*"\[(.*?)\]"/g, 'server: "$1"');
 			
 			if (userAgent.includes('surge') || _url.searchParams.has('surge')) content = surge(content, `https://${hostName}/${password}?surge`);	
 			return content;
@@ -1880,40 +1884,41 @@ async function socks5Connect(addressType, addressRemote, portRemote, log) {
 }
 
 
-/**
- * 
- * @param {string} address
- */
-function socks5AddressParser(address) {
-	let [latter, former] = address.split("@").reverse();
-	let username, password, hostname, port;
-	if (former) {
-		const formers = former.split(":");
-		if (formers.length !== 2) {
+	/**
+	 * 
+	 * @param {string} address
+	 */
+	function socks5AddressParser(address) {
+		let [latter, former] = address.split("@").reverse();
+		let username, password, hostname, port;
+		if (former) {
+			const formers = former.split(":");
+			if (formers.length !== 2) {
+				throw new Error('Invalid SOCKS address format');
+			}
+			[username, password] = formers;
+		}
+		const latters = latter.split(":");
+		port = Number(latters.pop());
+		if (isNaN(port)) {
 			throw new Error('Invalid SOCKS address format');
 		}
-		[username, password] = formers;
+		hostname = latters.join(":");
+		const regex = /^\[.*\]$/;
+		if (hostname.includes(":") && !regex.test(hostname)) {
+			throw new Error('Invalid SOCKS address format');
+		}
+		//if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(hostname)) hostname = `${atob('d3d3Lg==')}${hostname}${atob('LmlwLjA5MDIyNy54eXo=')}`;
+		return {
+			username,
+			password,
+			hostname,
+			port,
+		}
 	}
-	const latters = latter.split(":");
-	port = Number(latters.pop());
-	if (isNaN(port)) {
-		throw new Error('Invalid SOCKS address format');
-	}
-	hostname = latters.join(":");
-	const regex = /^\[.*\]$/;
-	if (hostname.includes(":") && !regex.test(hostname)) {
-		throw new Error('Invalid SOCKS address format');
-	}
-	//if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(hostname)) hostname = `${atob('d3d3Lg==')}${hostname}${atob('LmlwLjA5MDIyNy54eXo=')}`;
-	return {
-		username,
-		password,
-		hostname,
-		port,
-	}
-}
 
-function isValidIPv4(address) {
-	const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-	return ipv4Regex.test(address);
+	function isValidIPv4(address) {
+		const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+		return ipv4Regex.test(address);
+	}
 }
