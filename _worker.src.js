@@ -651,24 +651,27 @@ function checkSUB(host) {
 	}
 }
 
-function 配置信息(密码, 域名地址) {
-	const 啥啥啥_写的这是啥啊 = 'dHJvamFu';
-	const 协议类型 = atob(啥啥啥_写的这是啥啊);
-	
-	const 别名 = FileName;
-	let 地址 = 域名地址;
-	let 端口 = 443;
-	
-	const 传输层协议 = 'ws';
-	const 伪装域名 = 域名地址;
-	const 路径 = '/?ed=2560';
-	
-	let 传输层安全 = ['tls',true];
-	const SNI = 域名地址;
-	const 指纹 = 'randomized';
-	
-	const v2ray = `${协议类型}://${encodeURIComponent(密码)}@${地址}:${端口}?security=${传输层安全[0]}&sni=${SNI}&alpn=h3&fp=${指纹}&allowInsecure=1&type=${传输层协议}&host=${伪装域名}&path=${encodeURIComponent(路径)}#${encodeURIComponent(别名)}`              
-	const clash = `- {name: ${别名}, server: ${地址}, port: ${端口}, udp: false, client-fingerprint: ${指纹}, type: ${协议类型}, password: ${密码}, sni: ${SNI}, alpn: [h3], skip-cert-verify: true, network: ${传输层协议}, ws-opts: {path: "${路径}", headers: {Host: ${伪装域名}}}}`;
+function 配置信息(密码, 域名地址, clashAddress) {
+    const 啥啥啥_写的这是啥啊 = 'dHJvamFu';
+    const 协议类型 = atob(啥啥啥_写的这是啥啊);
+    
+    const 别名 = FileName;
+    let 地址 = 域名地址;
+    let 端口 = 443;
+    
+    const 传输层协议 = 'ws';
+    const 伪装域名 = 域名地址;
+    const 路径 = '/?ed=2560';
+    
+    let 传输层安全 = ['tls',true];
+    const SNI = 域名地址;
+    const 指纹 = 'randomized';
+    
+    // v2ray 格式使用原始地址
+    const v2ray = `${协议类型}://${encodeURIComponent(密码)}@${地址}:${端口}?security=${传输层安全[0]}&sni=${SNI}&alpn=h3&fp=${指纹}&allowInsecure=1&type=${传输层协议}&host=${伪装域名}&path=${encodeURIComponent(路径)}#${encodeURIComponent(别名)}`              
+    
+    // clash 格式使用处理后的地址
+    const clash = `- {name: ${别名}, server: ${clashAddress}, port: ${端口}, udp: false, client-fingerprint: ${指纹}, type: ${协议类型}, password: ${密码}, sni: ${SNI}, alpn: [h3], skip-cert-verify: true, network: ${传输层协议}, ws-opts: {path: "${路径}", headers: {Host: ${伪装域名}}}}`;
 
 	return [v2ray,clash];
 }
@@ -677,7 +680,7 @@ let subParams = ['sub','base64','b64','clash','singbox','sb','surge'];
 async function getTrojanConfig(password, hostName, sub, UA, RproxyIP, _url) {
 	checkSUB(hostName);
 	const userAgent = UA.toLowerCase();
-	const Config = 配置信息(password , hostName);
+	const Config = 配置信息(password , hostName, clashAddress);
 	const v2ray = Config[0];
 	const clash = Config[1];
 	let proxyhost = "";
@@ -859,8 +862,6 @@ https://github.com/cmliu/epeius
 						'User-Agent': `CF-Workers-epeius/cmliu`
 					}});
 				content = await response.text();
-
-				content = content.replace(/server:\s*["']\[(.*?)\]["']/g, 'server: "$1"');
 			}
 
 			if (_url.pathname == `/${fakeUserID}`) return content;
@@ -933,6 +934,12 @@ function subAddresses(host,pw,userAgent,newAddressesapi,newAddressescsv) {
 			address = match[1];
 			port = match[2] || port;
 			addressid = match[3] || address;
+			let clashAddress = address;  // 创建用于clash的地址变量
+
+			// 如果地址包含中括号，则去除中括号
+			if (clashAddress.startsWith('[') && clashAddress.includes(']')) {
+				clashAddress = clashAddress.slice(1, clashAddress.indexOf(']'));
+			}
 		}
 
 		const httpsPorts = ["2053","2083","2087","2096","8443"];
