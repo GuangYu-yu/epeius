@@ -859,10 +859,9 @@ https://github.com/cmliu/epeius
 						'User-Agent': `CF-Workers-epeius/cmliu`
 					}});
 				content = await response.text();
-			}
 
-			// 在所有情况下都处理 server: "[xxx]" 格式
-			content = content.replace(/server:\s*"\[(.*?)\]"/g, 'server: "$1"');
+				content = content.replace(/server:\s*["']\[(.*?)\]["']/g, 'server: "$1"');
+			}
 
 			if (_url.pathname == `/${fakeUserID}`) return content;
 			
