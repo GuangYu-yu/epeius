@@ -563,16 +563,10 @@ export {
 */
 
 function revertFakeInfo(content, userID, hostName, isBase64) {
-    // 如果内容是base64编码的，先解码
-    if (isBase64) content = atob(content);
-    
-    // 将混淆的信息替换回真实信息
-    content = content.replace(new RegExp(fakeUserID, 'g'), userID)  // 替换假密码为真实密码
-                    .replace(new RegExp(fakeHostName, 'g'), hostName)  // 替换假域名为真实域名
-                    .replace(/server:\s*"\[(.*?)\]"/g, 'server: "$1"');  // 移除server值两边的方括号，以适配clash的ipv6地址
-    
-    // 如果原内容是base64编码的，还需要重新编码
-    if (isBase64) content = btoa(content);
+	if (isBase64) content = atob(content);//Base64解码
+	content = content.replace(new RegExp(fakeUserID, 'g'), userID).replace(new RegExp(fakeHostName, 'g'), hostName);
+	//console.log(content);
+	if (isBase64) content = btoa(content);//Base64编码
 
 	return content;
 }
@@ -844,15 +838,12 @@ https://github.com/cmliu/epeius
 
 		if (!userAgent.includes(('CF-Workers-SUB').toLowerCase())){
 			if ((userAgent.includes('clash') && !userAgent.includes('nekobox')) || ( _url.searchParams.has('clash'))) {
-				// 提交到转换后端进行 clash 格式转换
 				url = `${subProtocol}://${subconverter}/sub?target=clash&url=${encodeURIComponent(url)}&insert=false&config=${encodeURIComponent(subconfig)}&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
 				isBase64 = false;
 			} else if (userAgent.includes('sing-box') || userAgent.includes('singbox') || _url.searchParams.has('singbox') || _url.searchParams.has('sb')) {
-				// 提交到转换后端进行 sing-box 格式转换  
 				url = `${subProtocol}://${subconverter}/sub?target=singbox&url=${encodeURIComponent(url)}&insert=false&config=${encodeURIComponent(subconfig)}&emoji=true&list=false&tfo=false&scv=true&fdn=false&sort=false&new_name=true`;
 				isBase64 = false;
 			} else if (userAgent.includes('surge') || _url.searchParams.has('surge')) {
-				// 提交到转换后端进行 surge 格式转换
 				url = `${subProtocol}://${subconverter}/sub?target=surge&ver=4&url=${encodeURIComponent(url)}&insert=false&config=${encodeURIComponent(subconfig)}&emoji=true&list=false&xudp=false&udp=false&tfo=false&expand=true&scv=true&fdn=false`;
 				isBase64 = false;
 			}
@@ -861,22 +852,18 @@ https://github.com/cmliu/epeius
 		try {
 			let content;
 			if ((!sub || sub == "") && isBase64 == true) {
-				// 如果没有设置订阅源且需要base64格式,使用本地生成
 				content = await subAddresses(fakeHostName,fakeUserID,userAgent,newAddressesapi,newAddressescsv);
 			} else {
-				// 发送请求到订阅转换后端
 				const response = await fetch(url ,{
 					headers: {
 						'User-Agent': `CF-Workers-epeius/cmliu`
 					}});
-				// 获取后端返回的文本内容
 				content = await response.text();
 			}
 
 			if (_url.pathname == `/${fakeUserID}`) return content;
 			
 			content = revertFakeInfo(content, password, hostName, isBase64);
-			
 			if (userAgent.includes('surge') || _url.searchParams.has('surge')) content = surge(content, `https://${hostName}/${password}?surge`);	
 			return content;
 		} catch (error) {
@@ -1884,41 +1871,40 @@ async function socks5Connect(addressType, addressRemote, portRemote, log) {
 }
 
 
-	/**
-	 * 
-	 * @param {string} address
-	 */
-	function socks5AddressParser(address) {
-		let [latter, former] = address.split("@").reverse();
-		let username, password, hostname, port;
-		if (former) {
-			const formers = former.split(":");
-			if (formers.length !== 2) {
-				throw new Error('Invalid SOCKS address format');
-			}
-			[username, password] = formers;
-		}
-		const latters = latter.split(":");
-		port = Number(latters.pop());
-		if (isNaN(port)) {
+/**
+ * 
+ * @param {string} address
+ */
+function socks5AddressParser(address) {
+	let [latter, former] = address.split("@").reverse();
+	let username, password, hostname, port;
+	if (former) {
+		const formers = former.split(":");
+		if (formers.length !== 2) {
 			throw new Error('Invalid SOCKS address format');
 		}
-		hostname = latters.join(":");
-		const regex = /^\[.*\]$/;
-		if (hostname.includes(":") && !regex.test(hostname)) {
-			throw new Error('Invalid SOCKS address format');
-		}
-		//if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(hostname)) hostname = `${atob('d3d3Lg==')}${hostname}${atob('LmlwLjA5MDIyNy54eXo=')}`;
-		return {
-			username,
-			password,
-			hostname,
-			port,
-		}
+		[username, password] = formers;
 	}
+	const latters = latter.split(":");
+	port = Number(latters.pop());
+	if (isNaN(port)) {
+		throw new Error('Invalid SOCKS address format');
+	}
+	hostname = latters.join(":");
+	const regex = /^\[.*\]$/;
+	if (hostname.includes(":") && !regex.test(hostname)) {
+		throw new Error('Invalid SOCKS address format');
+	}
+	//if (/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(hostname)) hostname = `${atob('d3d3Lg==')}${hostname}${atob('LmlwLjA5MDIyNy54eXo=')}`;
+	return {
+		username,
+		password,
+		hostname,
+		port,
+	}
+}
 
-	function isValidIPv4(address) {
-		const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-		return ipv4Regex.test(address);
-	}
+function isValidIPv4(address) {
+	const ipv4Regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+	return ipv4Regex.test(address);
 }
