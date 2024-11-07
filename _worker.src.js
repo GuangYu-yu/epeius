@@ -859,12 +859,10 @@ https://github.com/cmliu/epeius
 						'User-Agent': `CF-Workers-epeius/cmliu`
 					}});
 				content = await response.text();
-				
-				// 同时处理URL参数和User-Agent两种情况
-				if (_url.searchParams.has('clash') || (userAgent.includes('clash') && !userAgent.includes('nekobox'))) {
-					content = content.replace(/server:\s*"\[([\da-fA-F:]+)\]"/g, 'server: "$1"');
-				}
 			}
+
+			// 在所有情况下都处理 server: "[xxx]" 格式
+			content = content.replace(/server:\s*"\[(.*?)\]"/g, 'server: "$1"');
 
 			if (_url.pathname == `/${fakeUserID}`) return content;
 			
