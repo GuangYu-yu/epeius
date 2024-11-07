@@ -862,16 +862,19 @@ https://github.com/cmliu/epeius
 				
 				// 处理clash配置中的IPv6地址格式
 				if (userAgent.includes('clash') || _url.searchParams.has('clash')) {
-					content = content.replace(/server: "\[([\da-fA-F:]+)\]"/g, 'server: "$1"');
+					// IPv6 地址的完整正则模式
+					const ipv6Pattern = '(?:(?:[\\da-fA-F]{1,4}:){7}[\\da-fA-F]{1,4}|(?:[\\da-fA-F]{1,4}:){1,7}:|(?:[\\da-fA-F]{1,4}:){1,6}:[\\da-fA-F]{1,4}|(?:[\\da-fA-F]{1,4}:){1,5}(?::[\\da-fA-F]{1,4}){1,2}|(?:[\\da-fA-F]{1,4}:){1,4}(?::[\\da-fA-F]{1,4}){1,3}|(?:[\\da-fA-F]{1,4}:){1,3}(?::[\\da-fA-F]{1,4}){1,4}|(?:[\\da-fA-F]{1,4}:){1,2}(?::[\\da-fA-F]{1,4}){1,5}|[\\da-fA-F]{1,4}:(?:(?::[\\da-fA-F]{1,4}){1,6})|:(?:(?::[\\da-fA-F]{1,4}){1,7}|:)|fe80:(?::[\\da-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[\\da-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))';
+					
+					// 匹配 clash 配置中被方括号包围的 IPv6 地址
+					const serverPattern = new RegExp(`server:\\s*"\\[(${ipv6Pattern})\\]"`, 'g');
+					content = content.replace(serverPattern, 'server: "$1"');
 				}
 			}
 
 			if (_url.pathname == `/${fakeUserID}`) return content;
 			
 			content = revertFakeInfo(content, password, hostName, isBase64);
-			if (userAgent.includes('surge') || _url.searchParams.has('surge')) {
-				content = surge(content, `https://${hostName}/${password}?surge`);
-			}
+			if (userAgent.includes('surge') || _url.searchParams.has('surge')) content = surge(content, `https://${hostName}/${password}?surge`);	
 			return content;
 		} catch (error) {
 			console.error('Error fetching content:', error);
