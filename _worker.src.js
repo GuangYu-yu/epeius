@@ -666,33 +666,9 @@ function 配置信息(密码, 域名地址) {
 	let 传输层安全 = ['tls',true];
 	const SNI = 域名地址;
 	const 指纹 = 'randomized';
-
-	// 处理地址和端口
-	let clash地址 = 地址;
-	if (地址.startsWith('[') && 地址.includes(']:')) {
-		// 处理IPv6地址格式
-		const matches = 地址.match(/\[(.*?)\]:(\d+)/);
-		if (matches) {
-			clash地址 = matches[1]; // 不带中括号的IPv6地址
-			端口 = parseInt(matches[2]);
-		}
-	} else if (地址.includes(':') && !地址.startsWith('[')) {
-		// 处理IPv4或域名带端口的情况
-		const lastColonIndex = 地址.lastIndexOf(':');
-		const potentialPort = 地址.substring(lastColonIndex + 1);
-		if (/^\d+$/.test(potentialPort)) { // 确保冒号后是数字
-			端口 = parseInt(potentialPort);
-			clash地址 = 地址.substring(0, lastColonIndex);
-		}
-	}
-
-	// 如果是IPv6地址但没有端口，需要去掉中括号
-	if (clash地址.startsWith('[') && clash地址.endsWith(']')) {
-		clash地址 = clash地址.slice(1, -1);
-	}
 	
 	const v2ray = `${协议类型}://${encodeURIComponent(密码)}@${地址}:${端口}?security=${传输层安全[0]}&sni=${SNI}&alpn=h3&fp=${指纹}&allowInsecure=1&type=${传输层协议}&host=${伪装域名}&path=${encodeURIComponent(路径)}#${encodeURIComponent(别名)}`              
-	const clash = `- {name: ${别名}, server: "${clash地址}", port: ${端口}, udp: false, client-fingerprint: ${指纹}, type: ${协议类型}, password: ${密码}, sni: ${SNI}, alpn: [h3], skip-cert-verify: true, network: ${传输层协议}, ws-opts: {path: "${路径}", headers: {Host: ${伪装域名}}}}`
+	const clash = `- {name: ${别名}, server: "${地址}", port: ${端口}, udp: false, client-fingerprint: ${指纹}, type: ${协议类型}, password: ${密码}, sni: ${SNI}, alpn: [h3], skip-cert-verify: true, network: ${传输层协议}, ws-opts: {path: "${路径}", headers: {Host: ${伪装域名}}}}`
 
 	return [v2ray,clash];
 }
@@ -883,12 +859,19 @@ https://github.com/cmliu/epeius
 						'User-Agent': `CF-Workers-epeius/cmliu`
 					}});
 				content = await response.text();
+				
+				// 处理clash配置中的IPv6地址格式
+				if (userAgent.includes('clash') || _url.searchParams.has('clash')) {
+					content = content.replace(/server: "\[([\da-fA-F:]+)\]"/g, 'server: "$1"');
+				}
 			}
 
 			if (_url.pathname == `/${fakeUserID}`) return content;
 			
 			content = revertFakeInfo(content, password, hostName, isBase64);
-			if (userAgent.includes('surge') || _url.searchParams.has('surge')) content = surge(content, `https://${hostName}/${password}?surge`);	
+			if (userAgent.includes('surge') || _url.searchParams.has('surge')) {
+				content = surge(content, `https://${hostName}/${password}?surge`);
+			}
 			return content;
 		} catch (error) {
 			console.error('Error fetching content:', error);
