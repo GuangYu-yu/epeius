@@ -668,7 +668,7 @@ function 配置信息(密码, 域名地址) {
 	const 指纹 = 'randomized';
 	
 	const v2ray = `${协议类型}://${encodeURIComponent(密码)}@${地址}:${端口}?security=${传输层安全[0]}&sni=${SNI}&alpn=h3&fp=${指纹}&allowInsecure=1&type=${传输层协议}&host=${伪装域名}&path=${encodeURIComponent(路径)}#${encodeURIComponent(别名)}`              
-	const clash = `- {name: ${别名}, server: "${地址}", port: ${端口}, udp: false, client-fingerprint: ${指纹}, type: ${协议类型}, password: ${密码}, sni: ${SNI}, alpn: [h3], skip-cert-verify: true, network: ${传输层协议}, ws-opts: {path: "${路径}", headers: {Host: ${伪装域名}}}}`
+	const clash = `- {name: ${别名}, server: ${地址}, port: ${端口}, udp: false, client-fingerprint: ${指纹}, type: ${协议类型}, password: ${密码}, sni: ${SNI}, alpn: [h3], skip-cert-verify: true, network: ${传输层协议}, ws-opts: {path: "${路径}", headers: {Host: ${伪装域名}}}}`;
 
 	return [v2ray,clash];
 }
@@ -860,14 +860,9 @@ https://github.com/cmliu/epeius
 					}});
 				content = await response.text();
 				
-				// 处理clash配置中的IPv6地址格式
-				if (userAgent.includes('clash') || _url.searchParams.has('clash')) {
-					// IPv6 地址的完整正则模式
-					const ipv6Pattern = '(?:(?:[\\da-fA-F]{1,4}:){7}[\\da-fA-F]{1,4}|(?:[\\da-fA-F]{1,4}:){1,7}:|(?:[\\da-fA-F]{1,4}:){1,6}:[\\da-fA-F]{1,4}|(?:[\\da-fA-F]{1,4}:){1,5}(?::[\\da-fA-F]{1,4}){1,2}|(?:[\\da-fA-F]{1,4}:){1,4}(?::[\\da-fA-F]{1,4}){1,3}|(?:[\\da-fA-F]{1,4}:){1,3}(?::[\\da-fA-F]{1,4}){1,4}|(?:[\\da-fA-F]{1,4}:){1,2}(?::[\\da-fA-F]{1,4}){1,5}|[\\da-fA-F]{1,4}:(?:(?::[\\da-fA-F]{1,4}){1,6})|:(?:(?::[\\da-fA-F]{1,4}){1,7}|:)|fe80:(?::[\\da-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(?:ffff(?::0{1,4}){0,1}:){0,1}(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])|(?:[\\da-fA-F]{1,4}:){1,4}:(?:(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(?:25[0-5]|(?:2[0-4]|1{0,1}[0-9]){0,1}[0-9]))';
-					
-					// 匹配 clash 配置中被方括号包围的 IPv6 地址
-					const serverPattern = new RegExp(`server:\\s*"\\[(${ipv6Pattern})\\]"`, 'g');
-					content = content.replace(serverPattern, 'server: "$1"');
+				// 同时处理URL参数和User-Agent两种情况
+				if (_url.searchParams.has('clash') || (userAgent.includes('clash') && !userAgent.includes('nekobox'))) {
+					content = content.replace(/server:\s*"\[([\da-fA-F:]+)\]"/g, 'server: "$1"');
 				}
 			}
 
